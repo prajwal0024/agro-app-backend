@@ -1,6 +1,8 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const userRouter = require('./routes/userRoutes');
+const AppError = require('./helpers/appError');
+const globalErrorHandler = require('./controllers/errorController');
 
 // Initialization
 const app = express();
@@ -12,15 +14,12 @@ app.use(cookieParser());
 // Mounting
 app.use('/api/v1/users', userRouter);
 
-// Global Error Handler
-app.use((err, req, res, next) => {
-  console.log('💥 FROM GLOBAL ERROR HANDLER 💥');
+// Universal route handler
+app.all('*', (req, res, next) =>
+  next(new AppError(`Can't find ${req.originalUrl} on the server`))
+);
 
-  res.status(err.statusCode || 500).json({
-    status: err.status || 'err',
-    message: err.message,
-    error: err,
-  });
-});
+// Global Error Handler
+app.use(globalErrorHandler);
 
 module.exports = app;
