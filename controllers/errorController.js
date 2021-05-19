@@ -1,5 +1,4 @@
 /* eslint-disable no-console */
-const AppError = require('../helpers/appError');
 const customErrorHandler = require('../helpers/customErrorHandler');
 
 const sendErrorDev = (err, res) => {

@@ -55,3 +55,46 @@ exports.signup = catchAsyncHandler(async (req, res, next) => {
     },
   });
 });
+
+exports.login = catchAsyncHandler(async (req, res, next) => {
+  // 1. Get email id from req
+  const { email, password } = req.body;
+
+  if (!email || !password)
+    return next(new AppError('Insufficient Parameters', 400));
+
+  // 2. Check if user exsists
+  const user = await User.findOne({ email }).select('+password -__v');
+  if (!user) return next(new AppError('Invalid email or password', 403));
+
+  // 3. Check is password is correct
+  if (!(await user.checkPassword(password)))
+    return next(new AppError('Invalid email or password', 403));
+
+  // 4. Generate User token
+  const accessToken = generateToken(user._id, 'access');
+
+  // 5. Generate Refresh token
+  const refreshToken = generateToken(user._id, 'refresh');
+  refreshTokenDb.push(refreshToken);
+
+  // 6. Set Cookie
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+  });
+
+  // 7. Send Response
+  user.password = undefined;
+  user.__v = undefined;
+  user.passwordChangedAt = undefined;
+  user.passwordResetOTP = undefined;
+  user.passwordResetOTPExpires = undefined;
+
+  res.status(200).json({
+    status: 'success',
+    accessToken,
+    data: {
+      user,
+    },
+  });
+});
