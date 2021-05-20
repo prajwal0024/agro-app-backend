@@ -1,8 +1,10 @@
 const { promisify } = require('util');
+const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 const AppError = require('../helpers/appError');
 const User = require('../models/userModel');
 const catchAsyncHandler = require('../helpers/catchAsyncHandler');
+const sendMail = require('../helpers/email');
 
 let refreshTokenDb = [];
 
@@ -181,5 +183,103 @@ exports.revokeToken = catchAsyncHandler(async (req, res, next) => {
   // 4. Return response
   res.status(204).json({
     status: 'success',
+  });
+});
+
+exports.forgotPassword = catchAsyncHandler(async (req, res, next) => {
+  // 1. Get email from req
+  const { email } = req.body;
+  if (!email) return next(new AppError('No email address found', 404));
+
+  // 2. Get user from email
+  const user = await User.findOne({ email });
+  if (!user) return next(new AppError(`No user found by email: ${email}`, 404));
+
+  // 3. Generate Password Reset OTP
+  const passwordResetOTP = user.generatePasswordResetToken();
+  await user.save({ validateBeforeSave: false });
+
+  // 4. Send Mail
+  const subject = 'AgroApp, reset your passoword (Valid for 10 mins)';
+  const message = `OTP for resetting the password ${passwordResetOTP}`;
+
+  try {
+    await sendMail({
+      email: user.email,
+      subject,
+      message,
+      passwordResetOTP,
+    });
+  } catch (error) {
+    user.passwordResetOTP = undefined;
+    user.passwordResetOTPExpires = undefined;
+    await user.save({ validateBeforeSave: false });
+
+    return next(new AppError('Problem sending email, try again later', 500));
+  }
+
+  // 5. Return Response
+  res.status(200).json({
+    status: 'success',
+    message: `OTP send to email ${email}`,
+    timeLeft: user.passwordResetOTPExpires,
+  });
+});
+
+exports.verifyPasswordResetOTP = catchAsyncHandler(async (req, res, next) => {
+  // 1. Get email and otp from req
+  const { email, passwordOTP } = req.body;
+  if (!email || !passwordOTP)
+    return next(new AppError('Insufficient Credentials', 404));
+
+  // 2. Verify the otp
+  const passwordResetOTP = crypto
+    .createHash('sha256')
+    .update(passwordOTP)
+    .digest('hex');
+
+  const user = await User.findOne({
+    email,
+    passwordResetOTP,
+    passwordResetOTPExpires: { $gt: Date.now() },
+  });
+
+  if (!user) return next(new AppError('Invalid or Expired OTP', 404));
+
+  // 3. Return response
+  res.status(200).json({
+    status: 'success',
+    message: 'Valid OTP',
+    timeLeft: user.passwordResetOTPExpires,
+    resetToken: passwordResetOTP,
+  });
+});
+
+exports.resetPassword = catchAsyncHandler(async (req, res, next) => {
+  // 1. Get email, passwords, token from req
+  const { email, resetToken, password, passwordConfirm } = req.body;
+  if (!email || !resetToken || !password || !passwordConfirm)
+    return next(new AppError('Insufficient credentials', 404));
+
+  // 2. Get user
+  const user = await User.findOne({
+    email,
+    passwordResetOTP: resetToken,
+    passwordResetOTPExpires: { $gt: Date.now() },
+  });
+
+  if (!user) return next(new AppError('Invalid Credentials', 403));
+
+  // 3. Change the password
+  user.password = password;
+  user.passwordConfirm = passwordConfirm;
+  user.passwordResetOTP = undefined;
+  user.passwordResetOTPExpires = undefined;
+  await user.save();
+
+  // 4. Send Response
+  res.status(200).json({
+    status: 'success',
+    message: 'Password Reset Successfull',
   });
 });

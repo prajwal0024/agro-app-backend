@@ -29,6 +29,7 @@ const sendMail = async (options) => {
     // 3. Send the email
     await transporter.sendMail(mailOptions);
   } catch (error) {
+    // eslint-disable-next-line no-console
     console.log({ error });
   }
 };

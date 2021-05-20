@@ -64,5 +64,21 @@ userSchema.methods.isPasswordChangedAfterJWT = function (JWTTimestamp) {
   return false;
 };
 
+userSchema.methods.generatePasswordResetToken = function () {
+  // 1. Generate Password Reset OTP
+  const passwordResetOTP = Math.floor(100000 + Math.random() * 899999);
+
+  // 2. Encrypt the OTP
+  this.passwordResetOTP = crypto
+    .createHash('sha256')
+    .update(passwordResetOTP.toString())
+    .digest('hex');
+
+  // 3. Set OTP Expiry
+  this.passwordResetOTPExpires = Date.now() + 10 * 60 * 1000;
+
+  return passwordResetOTP;
+};
+
 const User = mongoose.model('User', userSchema);
 module.exports = User;
