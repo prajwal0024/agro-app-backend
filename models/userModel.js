@@ -9,6 +9,15 @@ const userSchema = mongoose.Schema({
   lastName: {
     type: String,
   },
+  phone: {
+    type: String,
+  },
+  areaCode: {
+    type: Number,
+  },
+  farmSize: {
+    type: Number,
+  },
   email: {
     type: String,
     required: [true, 'Email is missing'],
@@ -79,6 +88,13 @@ userSchema.methods.generatePasswordResetToken = function () {
 
   return passwordResetOTP;
 };
+
+userSchema.pre('save', function (next) {
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 2000;
+  next();
+});
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;

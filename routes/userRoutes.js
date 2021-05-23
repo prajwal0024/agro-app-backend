@@ -20,10 +20,11 @@ router
 // Users
 router
   .route('/me')
-  .get(
-    authController.protect,
-    userController.getMe,
-    userController.getUserById
-  );
+  .get(authController.protect, userController.getMe, userController.getUserById)
+  .patch(authController.protect, userController.updateMe);
+
+router
+  .route('/me/change-password')
+  .post(authController.protect, userController.updateUserPassword);
 
 module.exports = router;
