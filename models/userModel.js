@@ -33,6 +33,10 @@ const userSchema = mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  products: {
+    type: [mongoose.Schema.ObjectId],
+    ref: 'Product',
+  },
   password: {
     type: String,
     required: [true, 'Password is missing'],
