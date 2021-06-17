@@ -27,4 +27,9 @@ router
   .route('/me/change-password')
   .post(authController.protect, userController.updateUserPassword);
 
+router
+  .route('/me/image')
+  .patch(authController.protect, userController.updateMyProfileImage)
+  .delete(authController.protect, userController.removeMyProfileImage);
+
 module.exports = router;

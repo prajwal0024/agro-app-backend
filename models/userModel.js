@@ -33,6 +33,9 @@ const userSchema = mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  image: {
+    type: String,
+  },
   products: {
     type: [mongoose.Schema.ObjectId],
     ref: 'Product',
