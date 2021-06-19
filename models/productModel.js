@@ -11,7 +11,10 @@ const productSchema = mongoose.Schema(
       required: [true, 'User Id is missing'],
       ref: 'User',
     },
-    photo: {
+    mainImage: {
+      type: String,
+    },
+    images: {
       type: [String],
     },
     price: {

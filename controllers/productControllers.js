@@ -1,7 +1,119 @@
+/* eslint-disable no-unused-vars */
+const { uuid } = require('uuidv4');
 const catchAsyncHandler = require('../helpers/catchAsyncHandler');
 const AppError = require('../helpers/appError');
 const Product = require('../models/productModel');
 const User = require('../models/userModel');
+const cloudinary = require('../config/cloudinary');
+
+exports.uploadOtherProductImages = catchAsyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  // 1. Get image from body
+  const { imageStr } = req.body;
+  if (!imageStr) return next(new AppError('No image found', 404));
+
+  // 2. Upload Image
+  const imageId = uuid();
+  const uploadResponse = await cloudinary.uploader.upload(imageStr, {
+    public_id: `AgroApp/Products/product-${imageId}`,
+    overwrite: true,
+  });
+  if (!uploadResponse)
+    return next(
+      new AppError('Problem uploading image, please try again later', 500)
+    );
+
+  // 3. Update Product
+  await Product.findByIdAndUpdate(id, {
+    $push: { images: uploadResponse.url },
+  });
+
+  // 4. Send response
+  res.status(200).json({
+    status: 'success',
+    data: {
+      imageUrl: uploadResponse.url,
+    },
+  });
+});
+
+exports.deleteOtherProductImages = catchAsyncHandler(async (req, res, next) => {
+  // 1. Get id from the req body
+  const { id } = req.params;
+  const { imagename } = req.headers;
+  const extractedImageName = imagename.split('product-')[1].split('.')[0];
+
+  // 2. Delete the image from cloudinary
+  await cloudinary.uploader.destroy(
+    `AgroApp/Products/product-${extractedImageName}`
+  );
+
+  // 3. Update the product
+  const updatedProduct = await Product.findByIdAndUpdate(
+    id,
+    {
+      $pullAll: { images: [imagename] },
+    },
+    { new: true }
+  );
+
+  // 4. Send the response back
+  res.status(204).json({
+    status: 'success',
+    message: 'Product Image Deleted Successfully',
+  });
+});
+
+exports.uploadMainProductImage = catchAsyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  // 1. Get image from body
+  const { imageStr } = req.body;
+  if (!imageStr) return next(new AppError('No image found', 404));
+
+  // 2. Upload Image
+  const uploadResponse = await cloudinary.uploader.upload(imageStr, {
+    public_id: `AgroApp/Products/product-main-${id}`,
+    overwrite: true,
+  });
+  if (!uploadResponse)
+    return next(
+      new AppError('Problem uploading image, please try again later', 500)
+    );
+
+  // 3. Update Product
+  await Product.findByIdAndUpdate(id, {
+    mainImage: uploadResponse.url,
+  });
+
+  // 4. Send response
+  res.status(200).json({
+    status: 'success',
+    data: {
+      imageUrl: uploadResponse.url,
+    },
+  });
+});
+
+exports.deleteMainImage = catchAsyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  // 1. Delete Image from Cloudinary
+  const deletedImage = await cloudinary.uploader.destroy(
+    `AgroApp/Products/product-main-${id}`
+  );
+  if (!deletedImage)
+    return next(new AppError('Error in deleting image, try again later', 500));
+
+  // 2. Update Product
+  await Product.findByIdAndUpdate(id, { mainImage: '' });
+
+  // 3. Send Response
+  res.status(204).json({
+    status: 'success',
+    message: 'Main Image Deleted',
+  });
+});
 
 exports.getProductByUserId = catchAsyncHandler(async (req, res, next) => {
   const products = await User.findById(req.user.id)

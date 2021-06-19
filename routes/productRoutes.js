@@ -16,4 +16,14 @@ router
   .get(productController.getProductById)
   .patch(authController.protect, productController.updateProductById);
 
+router
+  .route('/:id/image')
+  .post(productController.uploadOtherProductImages)
+  .delete(productController.deleteOtherProductImages);
+
+router
+  .route('/:id/main-image')
+  .post(productController.uploadMainProductImage)
+  .delete(productController.deleteMainImage);
+
 module.exports = router;
