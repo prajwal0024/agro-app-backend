@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 
 const productSchema = mongoose.Schema(
   {
+    _id: mongoose.Schema.ObjectId,
     name: {
       type: String,
       required: [true, 'Product Name is missing'],
@@ -42,8 +43,10 @@ const productSchema = mongoose.Schema(
     contact: {
       type: String,
     },
+    block: String,
+    state: String,
   },
-  { timestamps: true }
+  { timestamps: true, _id: false }
 );
 
 const Product = mongoose.model('Product', productSchema);

@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const { promisify } = require('util');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');

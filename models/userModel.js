@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { stringify } = require('querystring');
 
 const userSchema = mongoose.Schema({
   firstName: {
@@ -33,6 +34,8 @@ const userSchema = mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user',
   },
+  block: String,
+  state: String,
   image: {
     type: String,
   },
@@ -56,6 +59,7 @@ const userSchema = mongoose.Schema({
       message: 'Password and Confirm Password do not match',
     },
   },
+
   passwordChangedAt: Date,
   passwordResetOTP: String,
   passwordResetOTPExpires: Date,
